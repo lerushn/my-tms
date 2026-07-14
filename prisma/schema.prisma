@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// A shipper you move freight for. You bill the customer for each load.
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  loads     Load[]
+}
+
+// A trucking company you dispatch loads to. You pay the carrier for each load.
+model Carrier {
+  id         String   @id @default(cuid())
+  name       String
+  mcNumber   String? // FMCSA Motor Carrier number, used to verify a carrier is authorized to haul
+  dotNumber  String? // US DOT number
+  contact    String?
+  phone      String?
+  email      String?
+  createdAt  DateTime @default(now())
+  loads      Load[]
+}
+
+enum LoadStatus {
+  BOOKED
+  DISPATCHED
+  IN_TRANSIT
+  DELIVERED
+  INVOICED
+  CANCELLED
+}
+
+// The central object of the TMS: one shipment moving from an origin to a destination.
+model Load {
+  id             String     @id @default(cuid())
+  referenceNumber String    @unique // human-readable load number shown to customers/carriers
+  status         LoadStatus @default(BOOKED)
+
+  originCity      String
+  originState     String
+  destCity        String
+  destState       String
+
+  pickupDate   DateTime
+  deliveryDate DateTime
+
+  commodity String?
+  weight    Int? // pounds
+
+  customerRate Float // what you bill the customer
+  carrierRate  Float? // what you pay the carrier (your margin = customerRate - carrierRate)
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+
+  carrier   Carrier? @relation(fields: [carrierId], references: [id])
+  carrierId String?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
