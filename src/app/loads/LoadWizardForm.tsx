@@ -139,6 +139,9 @@ export function LoadWizardForm({
             <Field label="Pickup address*" className="col-span-2">
               <input name="pickupAddress" required className={inputClass} />
             </Field>
+            <Field label="Shipper name (business/location at pickup)" className="col-span-2">
+              <input name="shipperName" className={inputClass} />
+            </Field>
             <Field label="Pickup scheduled time*">
               <input
                 name="pickupScheduledAt"
@@ -205,6 +208,9 @@ export function LoadWizardForm({
             <Field label="Delivery address*" className="col-span-2">
               <input name="deliveryAddress" required className={inputClass} />
             </Field>
+            <Field label="Receiver name (business/location at delivery)" className="col-span-2">
+              <input name="receiverName" className={inputClass} />
+            </Field>
             <Field label="Delivery scheduled time*">
               <input
                 name="deliveryScheduledAt"
@@ -264,6 +270,9 @@ export function LoadWizardForm({
                   </option>
                 ))}
               </select>
+            </Field>
+            <Field label="Truck #">
+              <input name="truckNumber" className={inputClass} />
             </Field>
             <Field label="Carrier rate ($)">
               <input

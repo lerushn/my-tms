@@ -25,9 +25,12 @@ export async function createLoad(formData: FormData) {
       referenceNumber: String(formData.get("referenceNumber") ?? "") || null,
       customerId,
       carrierId,
+      truckNumber: String(formData.get("truckNumber") ?? "") || null,
       status: carrierId ? "DISPATCHED" : "BOOKED",
       pickupAddress: String(formData.get("pickupAddress") ?? ""),
+      shipperName: String(formData.get("shipperName") ?? "") || null,
       deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
+      receiverName: String(formData.get("receiverName") ?? "") || null,
       pickupScheduledAt: new Date(String(formData.get("pickupScheduledAt"))),
       deliveryScheduledAt: new Date(
         String(formData.get("deliveryScheduledAt")),
@@ -55,10 +58,11 @@ export async function dispatchLoad(loadId: string, formData: FormData) {
   if (!carrierId) {
     throw new Error("Carrier is required to dispatch a load");
   }
+  const truckNumber = String(formData.get("truckNumber") ?? "") || null;
 
   await prisma.load.update({
     where: { id: loadId },
-    data: { carrierId, status: "DISPATCHED" },
+    data: { carrierId, truckNumber, status: "DISPATCHED" },
   });
 
   revalidatePath("/loads");

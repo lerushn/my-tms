@@ -70,8 +70,11 @@ model Load {
   referenceNumber String? // customer's own PO / reference number, entered manually
   status          LoadStatus @default(BOOKED)
 
-  pickupAddress   String // full address, e.g. "123 Main St, Chicago, IL 60601"
+  pickupAddress String // full address, e.g. "123 Main St, Chicago, IL 60601"
+  shipperName   String? // business/location name at pickup, e.g. "Dryden Warehouse"
+
   deliveryAddress String
+  receiverName    String? // business/location name at delivery
 
   pickupScheduledAt   DateTime
   deliveryScheduledAt DateTime
@@ -89,8 +92,9 @@ model Load {
   customer   Customer @relation(fields: [customerId], references: [id])
   customerId String
 
-  carrier   Carrier? @relation(fields: [carrierId], references: [id])
-  carrierId String?
+  carrier     Carrier? @relation(fields: [carrierId], references: [id])
+  carrierId   String?
+  truckNumber String? // carrier's truck/unit number for this load
 
   notes     String?
   createdAt DateTime @default(now())

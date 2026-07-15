@@ -1,49 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { advanceLoadStatus, revertLoadStatus, dispatchLoad } from "./actions";
 import { LoadWizardForm } from "./LoadWizardForm";
+import { InTransitBoard } from "./InTransitBoard";
 import type { LoadStatus } from "@/generated/prisma/client";
 import { tableWrapClass, theadClass, trClass } from "@/lib/ui";
 import { EQUIPMENT_LABELS, MODE_LABELS } from "@/lib/loadOptions";
-
-const STATUS_STYLES: Record<LoadStatus, string> = {
-  BOOKED: "bg-zinc-500/15 text-zinc-300",
-  DISPATCHED: "bg-blue-500/15 text-blue-300",
-  ON_ROUTE_TO_PICKUP: "bg-sky-500/15 text-sky-300",
-  AT_PICKUP: "bg-indigo-500/15 text-indigo-300",
-  IN_TRANSIT: "bg-amber-500/15 text-amber-300",
-  AT_DELIVERY: "bg-orange-500/15 text-orange-300",
-  DELIVERED: "bg-green-500/15 text-green-300",
-  INVOICED: "bg-purple-500/15 text-purple-300",
-  CANCELLED: "bg-red-500/15 text-red-300",
-};
-
-const NEXT_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
-  DISPATCHED: "Mark on route to pickup",
-  ON_ROUTE_TO_PICKUP: "Mark at pickup",
-  AT_PICKUP: "Mark in transit",
-  IN_TRANSIT: "Mark at delivery",
-  AT_DELIVERY: "Mark completed",
-  DELIVERED: "Mark invoiced",
-};
-
-const PREV_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
-  DISPATCHED: "Back to booked",
-  ON_ROUTE_TO_PICKUP: "Back to dispatched",
-  AT_PICKUP: "Back to on route to pickup",
-  IN_TRANSIT: "Back to at pickup",
-  AT_DELIVERY: "Back to in transit",
-  DELIVERED: "Back to at delivery",
-  INVOICED: "Back to delivered",
-};
-
-function formatDateTime(d: Date) {
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+import {
+  STATUS_STYLES,
+  NEXT_STATUS_LABEL,
+  PREV_STATUS_LABEL,
+  formatDateTime,
+} from "@/lib/loadStatus";
 
 type Tab = "available" | "in-transit" | "completed";
 
@@ -122,6 +89,9 @@ export default async function LoadsPage({
         </p>
       )}
 
+      {tab === "in-transit" && <InTransitBoard loads={loads} />}
+
+      {tab !== "in-transit" && (
       <div className={`${tableWrapClass} overflow-x-auto`}>
         <table className="w-full text-sm">
           <thead className={theadClass}>
@@ -206,6 +176,11 @@ export default async function LoadsPage({
                             </option>
                           ))}
                         </select>
+                        <input
+                          name="truckNumber"
+                          placeholder="Truck #"
+                          className="glass-input w-20 rounded-md px-1 py-1 text-xs"
+                        />
                         <button
                           type="submit"
                           className="whitespace-nowrap text-xs text-indigo-300 hover:text-indigo-200"
@@ -259,6 +234,7 @@ export default async function LoadsPage({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
