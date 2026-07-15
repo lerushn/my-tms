@@ -37,38 +37,11 @@ export function LoadWizardForm({
   carriers: { id: string; name: string }[];
 }) {
   const [step, setStep] = useState(0);
-  const [maxStep, setMaxStep] = useState(0);
   const stepEls = useRef<(HTMLDivElement | null)[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
 
-  function stepIsValid(index: number) {
-    const container = stepEls.current[index];
-    if (!container) return true;
-    const fields = container.querySelectorAll<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >("input, select, textarea");
-    for (const field of fields) {
-      if (!field.checkValidity()) {
-        field.reportValidity();
-        return false;
-      }
-    }
-    return true;
-  }
-
   function goNext() {
-    if (!stepIsValid(step)) return;
-    if (step === STEPS.length - 1) {
-      // Submitting via requestSubmit (rather than a type="submit" button
-      // whose `type` flips based on step) avoids a browser quirk where a
-      // button mutated from type="button" to type="submit" on the same
-      // click can submit that very click's default action.
-      formRef.current?.requestSubmit();
-      return;
-    }
-    const next = Math.min(step + 1, STEPS.length - 1);
-    setStep(next);
-    setMaxStep((m) => Math.max(m, next));
+    setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
 
   function goBack() {
@@ -76,7 +49,41 @@ export function LoadWizardForm({
   }
 
   function jumpTo(index: number) {
-    if (index <= maxStep) setStep(index);
+    setStep(index);
+  }
+
+  function handlePrimaryClick() {
+    if (step !== STEPS.length - 1) {
+      goNext();
+      return;
+    }
+
+    // Final step: validate the whole form (not just this step) before
+    // submitting. If something's missing, jump to whichever step has the
+    // first invalid field so the user can actually see it, rather than
+    // relying on native validation to focus a field that may be slid
+    // off-screen in another step.
+    const form = formRef.current;
+    if (!form) return;
+    const fields = form.querySelectorAll<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >("input, select, textarea");
+    for (const field of fields) {
+      if (!field.checkValidity()) {
+        const stepIndex = stepEls.current.findIndex((el) =>
+          el?.contains(field),
+        );
+        if (stepIndex !== -1) setStep(stepIndex);
+        requestAnimationFrame(() => field.reportValidity());
+        return;
+      }
+    }
+
+    // Submitting via requestSubmit (rather than a type="submit" button
+    // whose `type` flips based on step) avoids a browser quirk where a
+    // button mutated from type="button" to type="submit" on the same
+    // click can submit that very click's default action.
+    form.requestSubmit();
   }
 
   const isLastStep = step === STEPS.length - 1;
@@ -89,29 +96,21 @@ export function LoadWizardForm({
     >
       <div className="flex items-center gap-1 border-b border-white/10 px-6 py-4">
         {STEPS.map((s, i) => {
-          const reachable = i <= maxStep;
           const active = i === step;
           return (
             <button
               key={s.label}
               type="button"
               onClick={() => jumpTo(i)}
-              disabled={!reachable}
               className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                active
-                  ? "text-white"
-                  : reachable
-                    ? "text-zinc-400 hover:text-white"
-                    : "text-zinc-600"
+                active ? "text-white" : "text-zinc-400 hover:text-white"
               }`}
             >
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
                   active
                     ? "accent-gradient text-white"
-                    : reachable
-                      ? "bg-white/10 text-zinc-300"
-                      : "bg-white/5 text-zinc-600"
+                    : "bg-white/10 text-zinc-300"
                 }`}
               >
                 {i + 1}
@@ -287,7 +286,11 @@ export function LoadWizardForm({
         >
           ← Back
         </button>
-        <button type="button" onClick={goNext} className={primaryButtonClass}>
+        <button
+          type="button"
+          onClick={handlePrimaryClick}
+          className={primaryButtonClass}
+        >
           {isLastStep ? "Create load" : "Next →"}
         </button>
       </div>
