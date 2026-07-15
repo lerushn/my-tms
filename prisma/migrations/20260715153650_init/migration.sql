@@ -23,7 +23,8 @@ CREATE TABLE "Carrier" (
 -- CreateTable
 CREATE TABLE "Load" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "referenceNumber" TEXT NOT NULL,
+    "loadNumber" TEXT NOT NULL,
+    "referenceNumber" TEXT,
     "status" TEXT NOT NULL DEFAULT 'BOOKED',
     "pickupAddress" TEXT NOT NULL,
     "deliveryAddress" TEXT NOT NULL,
@@ -46,4 +47,4 @@ CREATE TABLE "Load" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Load_referenceNumber_key" ON "Load"("referenceNumber");
+CREATE UNIQUE INDEX "Load_loadNumber_key" ON "Load"("loadNumber");

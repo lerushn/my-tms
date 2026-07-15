@@ -78,8 +78,7 @@ export default async function LoadsPage() {
         >
           <input
             name="referenceNumber"
-            placeholder="Reference #*"
-            required
+            placeholder="Reference # (customer's PO/ref #, optional)"
             className="col-span-2 rounded border border-zinc-300 px-3 py-2"
           />
 
@@ -234,6 +233,7 @@ export default async function LoadsPage() {
         <table className="w-full text-sm">
           <thead className="bg-zinc-100 text-left text-zinc-600">
             <tr>
+              <th className="px-4 py-2">Load #</th>
               <th className="px-4 py-2">Ref #</th>
               <th className="px-4 py-2">Status</th>
               <th className="px-4 py-2">Equipment</th>
@@ -252,7 +252,10 @@ export default async function LoadsPage() {
               return (
                 <tr key={load.id} className="border-t border-zinc-100">
                   <td className="px-4 py-2 font-medium whitespace-nowrap">
-                    {load.referenceNumber}
+                    {load.loadNumber}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {load.referenceNumber ?? "—"}
                   </td>
                   <td className="px-4 py-2">
                     <span
@@ -302,7 +305,7 @@ export default async function LoadsPage() {
             {loads.length === 0 && (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={11}
                   className="px-4 py-6 text-center text-zinc-500"
                 >
                   No loads yet. Create your first one above.

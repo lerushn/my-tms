@@ -16,9 +16,13 @@ export async function createLoad(formData: FormData) {
 
   const carrierId = String(formData.get("carrierId") ?? "") || null;
 
+  const loadCount = await prisma.load.count();
+  const loadNumber = `L-${String(loadCount + 1).padStart(4, "0")}`;
+
   await prisma.load.create({
     data: {
-      referenceNumber: String(formData.get("referenceNumber") ?? ""),
+      loadNumber,
+      referenceNumber: String(formData.get("referenceNumber") ?? "") || null,
       customerId,
       carrierId,
       status: carrierId ? "DISPATCHED" : "BOOKED",
