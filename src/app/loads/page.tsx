@@ -5,19 +5,26 @@ import {
   revertLoadStatus,
   dispatchLoad,
 } from "./actions";
-import { TabSelect } from "./TabSelect";
 import type { Equipment, LoadStatus, ModeType } from "@/generated/prisma/client";
+import {
+  cardClass,
+  inputClass,
+  primaryButtonClass,
+  tableWrapClass,
+  theadClass,
+  trClass,
+} from "@/lib/ui";
 
 const STATUS_STYLES: Record<LoadStatus, string> = {
-  BOOKED: "bg-zinc-100 text-zinc-700",
-  DISPATCHED: "bg-blue-100 text-blue-700",
-  ON_ROUTE_TO_PICKUP: "bg-sky-100 text-sky-700",
-  AT_PICKUP: "bg-indigo-100 text-indigo-700",
-  IN_TRANSIT: "bg-amber-100 text-amber-700",
-  AT_DELIVERY: "bg-orange-100 text-orange-700",
-  DELIVERED: "bg-green-100 text-green-700",
-  INVOICED: "bg-purple-100 text-purple-700",
-  CANCELLED: "bg-red-100 text-red-700",
+  BOOKED: "bg-zinc-500/15 text-zinc-300",
+  DISPATCHED: "bg-blue-500/15 text-blue-300",
+  ON_ROUTE_TO_PICKUP: "bg-sky-500/15 text-sky-300",
+  AT_PICKUP: "bg-indigo-500/15 text-indigo-300",
+  IN_TRANSIT: "bg-amber-500/15 text-amber-300",
+  AT_DELIVERY: "bg-orange-500/15 text-orange-300",
+  DELIVERED: "bg-green-500/15 text-green-300",
+  INVOICED: "bg-purple-500/15 text-purple-300",
+  CANCELLED: "bg-red-500/15 text-red-300",
 };
 
 const NEXT_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
@@ -83,6 +90,12 @@ const TAB_STATUSES: Record<Tab, LoadStatus[]> = {
   completed: ["DELIVERED", "INVOICED", "CANCELLED"],
 };
 
+const TAB_TITLES: Record<Tab, string> = {
+  available: "Available",
+  "in-transit": "In Transit",
+  completed: "Completed",
+};
+
 const TAB_DESCRIPTIONS: Record<Tab, string> = {
   available: "Loads that haven't been dispatched to a carrier yet.",
   "in-transit": "Loads dispatched to a carrier and on the move.",
@@ -114,34 +127,33 @@ export default async function LoadsPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Loads</h1>
-          <p className="text-zinc-600">{TAB_DESCRIPTIONS[tab]}</p>
-        </div>
-        <TabSelect current={tab} />
+      <div>
+        <h1 className="text-2xl font-semibold text-white">
+          Loads · {TAB_TITLES[tab]}
+        </h1>
+        <p className="text-zinc-400">{TAB_DESCRIPTIONS[tab]}</p>
       </div>
 
       {tab === "available" &&
         (customers.length === 0 ? (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+          <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-amber-300">
             Add a customer first before creating a load.
           </p>
         ) : (
           <form
             action={createLoad}
-            className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+            className={`grid max-w-2xl grid-cols-2 gap-3 ${cardClass}`}
           >
             <input
               name="referenceNumber"
               placeholder="Reference # (customer's PO/ref #, optional)"
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+              className={`col-span-2 ${inputClass}`}
             />
 
             <select
               name="customerId"
               required
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+              className={`col-span-2 ${inputClass}`}
             >
               <option value="">Customer*</option>
               {customers.map((c) => (
@@ -151,10 +163,7 @@ export default async function LoadsPage({
               ))}
             </select>
 
-            <select
-              name="carrierId"
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-            >
+            <select name="carrierId" className={`col-span-2 ${inputClass}`}>
               <option value="">Carrier (assign now or later)</option>
               {carriers.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -167,41 +176,41 @@ export default async function LoadsPage({
               name="pickupAddress"
               placeholder="Pickup address*"
               required
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+              className={`col-span-2 ${inputClass}`}
             />
             <input
               name="deliveryAddress"
               placeholder="Delivery address*"
               required
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+              className={`col-span-2 ${inputClass}`}
             />
 
-            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Pickup scheduled time*
               <input
                 name="pickupScheduledAt"
                 type="datetime-local"
                 required
-                className="rounded border border-zinc-300 px-3 py-2"
+                className={inputClass}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Delivery scheduled time*
               <input
                 name="deliveryScheduledAt"
                 type="datetime-local"
                 required
-                className="rounded border border-zinc-300 px-3 py-2"
+                className={inputClass}
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Equipment*
               <select
                 name="equipment"
                 required
                 defaultValue=""
-                className="rounded border border-zinc-300 px-3 py-2"
+                className={inputClass}
               >
                 <option value="" disabled>
                   Select equipment
@@ -213,13 +222,13 @@ export default async function LoadsPage({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Mode*
               <select
                 name="modeType"
                 required
                 defaultValue=""
-                className="rounded border border-zinc-300 px-3 py-2"
+                className={inputClass}
               >
                 <option value="" disabled>
                   Select mode
@@ -236,64 +245,61 @@ export default async function LoadsPage({
               name="pieces"
               type="number"
               placeholder="Pieces"
-              className="rounded border border-zinc-300 px-3 py-2"
+              className={inputClass}
             />
             <input
               name="weight"
               type="number"
               placeholder="Weight (lbs)"
-              className="rounded border border-zinc-300 px-3 py-2"
+              className={inputClass}
             />
             <input
               name="commodity"
               placeholder="Commodity"
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+              className={`col-span-2 ${inputClass}`}
             />
 
-            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Customer rate ($)*
               <input
                 name="customerRate"
                 type="number"
                 step="0.01"
                 required
-                className="rounded border border-zinc-300 px-3 py-2"
+                className={inputClass}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
               Carrier rate ($)
               <input
                 name="carrierRate"
                 type="number"
                 step="0.01"
-                className="rounded border border-zinc-300 px-3 py-2"
+                className={inputClass}
               />
             </label>
 
             <textarea
               name="notes"
               placeholder="Notes"
-              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+              className={`col-span-2 ${inputClass}`}
             />
 
-            <button
-              type="submit"
-              className="col-span-2 rounded bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700"
-            >
+            <button type="submit" className={`col-span-2 ${primaryButtonClass}`}>
               Create load
             </button>
           </form>
         ))}
 
       {tab === "available" && loads.length > 0 && carriers.length === 0 && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+        <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-amber-300">
           Add a carrier before you can dispatch these loads.
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+      <div className={`${tableWrapClass} overflow-x-auto`}>
         <table className="w-full text-sm">
-          <thead className="bg-zinc-100 text-left text-zinc-600">
+          <thead className={theadClass}>
             <tr>
               <th className="px-4 py-2">Load #</th>
               <th className="px-4 py-2">Ref #</th>
@@ -313,11 +319,11 @@ export default async function LoadsPage({
               const nextLabel = NEXT_STATUS_LABEL[load.status];
               const prevLabel = PREV_STATUS_LABEL[load.status];
               return (
-                <tr key={load.id} className="border-t border-zinc-100">
-                  <td className="px-4 py-2 font-medium whitespace-nowrap">
+                <tr key={load.id} className={trClass}>
+                  <td className="px-4 py-2 font-medium whitespace-nowrap text-white">
                     {load.loadNumber}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap text-zinc-300">
                     {load.referenceNumber ?? "—"}
                   </td>
                   <td className="px-4 py-2">
@@ -327,27 +333,31 @@ export default async function LoadsPage({
                       {load.status.replaceAll("_", " ")}
                     </span>
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap text-zinc-300">
                     {EQUIPMENT_LABELS[load.equipment]}
                   </td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 whitespace-nowrap text-zinc-300">
                     {MODE_LABELS[load.modeType]}
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 text-zinc-300">
                     <div>{load.pickupAddress}</div>
                     <div className="text-xs text-zinc-500">
                       {formatDateTime(load.pickupScheduledAt)}
                     </div>
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 text-zinc-300">
                     <div>{load.deliveryAddress}</div>
                     <div className="text-xs text-zinc-500">
                       {formatDateTime(load.deliveryScheduledAt)}
                     </div>
                   </td>
-                  <td className="px-4 py-2">{load.customer.name}</td>
-                  <td className="px-4 py-2">{load.carrier?.name ?? "—"}</td>
-                  <td className="px-4 py-2 whitespace-nowrap">
+                  <td className="px-4 py-2 text-zinc-300">
+                    {load.customer.name}
+                  </td>
+                  <td className="px-4 py-2 text-zinc-300">
+                    {load.carrier?.name ?? "—"}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap text-zinc-300">
                     ${load.customerRate.toLocaleString()}
                   </td>
                   <td className="px-4 py-2">
@@ -360,7 +370,7 @@ export default async function LoadsPage({
                           name="carrierId"
                           required
                           defaultValue=""
-                          className="rounded border border-zinc-300 px-1 py-1 text-xs"
+                          className="glass-input rounded-md px-1 py-1 text-xs"
                         >
                           <option value="" disabled>
                             Assign carrier
@@ -373,7 +383,7 @@ export default async function LoadsPage({
                         </select>
                         <button
                           type="submit"
-                          className="whitespace-nowrap text-xs text-blue-600 hover:underline"
+                          className="whitespace-nowrap text-xs text-indigo-300 hover:text-indigo-200"
                         >
                           Dispatch
                         </button>
@@ -387,7 +397,7 @@ export default async function LoadsPage({
                           >
                             <button
                               type="submit"
-                              className="whitespace-nowrap text-xs text-blue-600 hover:underline"
+                              className="whitespace-nowrap text-xs text-indigo-300 hover:text-indigo-200"
                             >
                               {nextLabel}
                             </button>
@@ -399,7 +409,7 @@ export default async function LoadsPage({
                           >
                             <button
                               type="submit"
-                              className="whitespace-nowrap text-xs text-zinc-500 hover:underline"
+                              className="whitespace-nowrap text-xs text-zinc-500 hover:text-zinc-300"
                             >
                               ← {prevLabel}
                             </button>

@@ -22,8 +22,8 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-zinc-600">Overview of your operation.</p>
+        <h1 className="text-2xl font-semibold text-white">Home</h1>
+        <p className="text-zinc-400">Overview of your operation.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -31,10 +31,14 @@ export default async function Home() {
           <Link
             key={s.label}
             href={s.href}
-            className="rounded-lg border border-zinc-200 bg-white p-4 hover:border-zinc-400"
+            className="glass group flex flex-col gap-1 rounded-2xl p-5 transition-colors hover:bg-white/[0.08]"
           >
-            <div className="text-3xl font-semibold">{s.value}</div>
-            <div className="text-sm text-zinc-600">{s.label}</div>
+            <div className="bg-gradient-to-br from-indigo-300 to-blue-300 bg-clip-text text-3xl font-semibold text-transparent">
+              {s.value}
+            </div>
+            <div className="text-sm text-zinc-400 group-hover:text-zinc-300">
+              {s.label}
+            </div>
           </Link>
         ))}
       </div>
