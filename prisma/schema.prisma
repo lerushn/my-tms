@@ -45,22 +45,39 @@ enum LoadStatus {
   CANCELLED
 }
 
+enum Equipment {
+  SPRINTER
+  SMALL_STRAIGHT
+  LARGE_STRAIGHT
+  DRY_VAN
+  FLATBED
+}
+
+enum ModeType {
+  GROUND
+  OCEAN
+  CROSS_BORDER
+  AIR
+}
+
 // The central object of the TMS: one shipment moving from an origin to a destination.
 model Load {
-  id             String     @id @default(cuid())
-  referenceNumber String    @unique // human-readable load number shown to customers/carriers
-  status         LoadStatus @default(BOOKED)
+  id              String     @id @default(cuid())
+  referenceNumber String     @unique // load reference number shown to customers/carriers
+  status          LoadStatus @default(BOOKED)
 
-  originCity      String
-  originState     String
-  destCity        String
-  destState       String
+  pickupAddress   String // full address, e.g. "123 Main St, Chicago, IL 60601"
+  deliveryAddress String
 
-  pickupDate   DateTime
-  deliveryDate DateTime
+  pickupScheduledAt   DateTime
+  deliveryScheduledAt DateTime
 
-  commodity String?
+  pieces    Int?
   weight    Int? // pounds
+  commodity String?
+
+  equipment Equipment
+  modeType  ModeType
 
   customerRate Float // what you bill the customer
   carrierRate  Float? // what you pay the carrier (your margin = customerRate - carrierRate)

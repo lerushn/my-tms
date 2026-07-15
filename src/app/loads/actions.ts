@@ -2,7 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { LoadStatus } from "@/generated/prisma/client";
+import type {
+  Equipment,
+  LoadStatus,
+  ModeType,
+} from "@/generated/prisma/client";
 
 export async function createLoad(formData: FormData) {
   const customerId = String(formData.get("customerId") ?? "");
@@ -12,25 +16,25 @@ export async function createLoad(formData: FormData) {
 
   const carrierId = String(formData.get("carrierId") ?? "") || null;
 
-  const loadCount = await prisma.load.count();
-  const referenceNumber = `L-${String(loadCount + 1).padStart(4, "0")}`;
-
   await prisma.load.create({
     data: {
-      referenceNumber,
+      referenceNumber: String(formData.get("referenceNumber") ?? ""),
       customerId,
       carrierId,
       status: carrierId ? "DISPATCHED" : "BOOKED",
-      originCity: String(formData.get("originCity") ?? ""),
-      originState: String(formData.get("originState") ?? ""),
-      destCity: String(formData.get("destCity") ?? ""),
-      destState: String(formData.get("destState") ?? ""),
-      pickupDate: new Date(String(formData.get("pickupDate"))),
-      deliveryDate: new Date(String(formData.get("deliveryDate"))),
-      commodity: String(formData.get("commodity") ?? "") || null,
+      pickupAddress: String(formData.get("pickupAddress") ?? ""),
+      deliveryAddress: String(formData.get("deliveryAddress") ?? ""),
+      pickupScheduledAt: new Date(String(formData.get("pickupScheduledAt"))),
+      deliveryScheduledAt: new Date(
+        String(formData.get("deliveryScheduledAt")),
+      ),
+      pieces: formData.get("pieces") ? Number(formData.get("pieces")) : null,
       weight: formData.get("weight")
         ? Number(formData.get("weight"))
         : null,
+      commodity: String(formData.get("commodity") ?? "") || null,
+      equipment: String(formData.get("equipment")) as Equipment,
+      modeType: String(formData.get("modeType")) as ModeType,
       customerRate: Number(formData.get("customerRate") ?? 0),
       carrierRate: formData.get("carrierRate")
         ? Number(formData.get("carrierRate"))

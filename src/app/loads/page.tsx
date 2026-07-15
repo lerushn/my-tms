@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createLoad, advanceLoadStatus } from "./actions";
-import type { LoadStatus } from "@/generated/prisma/client";
+import type { Equipment, LoadStatus, ModeType } from "@/generated/prisma/client";
 
 const STATUS_STYLES: Record<LoadStatus, string> = {
   BOOKED: "bg-zinc-100 text-zinc-700",
@@ -18,8 +18,34 @@ const NEXT_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
   DELIVERED: "Mark invoiced",
 };
 
-function formatDate(d: Date) {
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
+  { value: "SPRINTER", label: "Sprinter" },
+  { value: "SMALL_STRAIGHT", label: "Small Straight" },
+  { value: "LARGE_STRAIGHT", label: "Large Straight" },
+  { value: "DRY_VAN", label: "Dry Van" },
+  { value: "FLATBED", label: "Flatbed" },
+];
+const EQUIPMENT_LABELS = Object.fromEntries(
+  EQUIPMENT_OPTIONS.map((o) => [o.value, o.label]),
+) as Record<Equipment, string>;
+
+const MODE_OPTIONS: { value: ModeType; label: string }[] = [
+  { value: "GROUND", label: "Ground" },
+  { value: "OCEAN", label: "Ocean" },
+  { value: "CROSS_BORDER", label: "Cross Border" },
+  { value: "AIR", label: "Air" },
+];
+const MODE_LABELS = Object.fromEntries(
+  MODE_OPTIONS.map((o) => [o.value, o.label]),
+) as Record<ModeType, string>;
+
+function formatDateTime(d: Date) {
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default async function LoadsPage() {
@@ -37,7 +63,7 @@ export default async function LoadsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Loads</h1>
         <p className="text-zinc-600">
-          Every shipment moving from an origin to a destination.
+          Every shipment moving from a pickup to a delivery address.
         </p>
       </div>
 
@@ -50,6 +76,13 @@ export default async function LoadsPage() {
           action={createLoad}
           className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4"
         >
+          <input
+            name="referenceNumber"
+            placeholder="Reference #*"
+            required
+            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+          />
+
           <select
             name="customerId"
             required
@@ -76,54 +109,78 @@ export default async function LoadsPage() {
           </select>
 
           <input
-            name="originCity"
-            placeholder="Origin city*"
+            name="pickupAddress"
+            placeholder="Pickup address*"
             required
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
           />
           <input
-            name="originState"
-            placeholder="Origin state*"
+            name="deliveryAddress"
+            placeholder="Delivery address*"
             required
-            maxLength={2}
-            className="rounded border border-zinc-300 px-3 py-2"
-          />
-          <input
-            name="destCity"
-            placeholder="Destination city*"
-            required
-            className="rounded border border-zinc-300 px-3 py-2"
-          />
-          <input
-            name="destState"
-            placeholder="Destination state*"
-            required
-            maxLength={2}
-            className="rounded border border-zinc-300 px-3 py-2"
+            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
           />
 
           <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Pickup date*
+            Pickup scheduled time*
             <input
-              name="pickupDate"
-              type="date"
+              name="pickupScheduledAt"
+              type="datetime-local"
               required
               className="rounded border border-zinc-300 px-3 py-2"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Delivery date*
+            Delivery scheduled time*
             <input
-              name="deliveryDate"
-              type="date"
+              name="deliveryScheduledAt"
+              type="datetime-local"
               required
               className="rounded border border-zinc-300 px-3 py-2"
             />
           </label>
 
+          <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            Equipment*
+            <select
+              name="equipment"
+              required
+              defaultValue=""
+              className="rounded border border-zinc-300 px-3 py-2"
+            >
+              <option value="" disabled>
+                Select equipment
+              </option>
+              {EQUIPMENT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-zinc-600">
+            Mode*
+            <select
+              name="modeType"
+              required
+              defaultValue=""
+              className="rounded border border-zinc-300 px-3 py-2"
+            >
+              <option value="" disabled>
+                Select mode
+              </option>
+              {MODE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <input
-            name="commodity"
-            placeholder="Commodity"
+            name="pieces"
+            type="number"
+            placeholder="Pieces"
             className="rounded border border-zinc-300 px-3 py-2"
           />
           <input
@@ -131,6 +188,11 @@ export default async function LoadsPage() {
             type="number"
             placeholder="Weight (lbs)"
             className="rounded border border-zinc-300 px-3 py-2"
+          />
+          <input
+            name="commodity"
+            placeholder="Commodity"
+            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
           />
 
           <label className="flex flex-col gap-1 text-sm text-zinc-600">
@@ -168,70 +230,88 @@ export default async function LoadsPage() {
         </form>
       )}
 
-      <table className="w-full overflow-hidden rounded-lg border border-zinc-200 bg-white text-sm">
-        <thead className="bg-zinc-100 text-left text-zinc-600">
-          <tr>
-            <th className="px-4 py-2">Load #</th>
-            <th className="px-4 py-2">Status</th>
-            <th className="px-4 py-2">Lane</th>
-            <th className="px-4 py-2">Pickup</th>
-            <th className="px-4 py-2">Customer</th>
-            <th className="px-4 py-2">Carrier</th>
-            <th className="px-4 py-2">Rate</th>
-            <th className="px-4 py-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {loads.map((load) => {
-            const nextLabel = NEXT_STATUS_LABEL[load.status];
-            return (
-              <tr key={load.id} className="border-t border-zinc-100">
-                <td className="px-4 py-2 font-medium">
-                  {load.referenceNumber}
-                </td>
-                <td className="px-4 py-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[load.status]}`}
-                  >
-                    {load.status.replace("_", " ")}
-                  </span>
-                </td>
-                <td className="px-4 py-2">
-                  {load.originCity}, {load.originState} → {load.destCity},{" "}
-                  {load.destState}
-                </td>
-                <td className="px-4 py-2">{formatDate(load.pickupDate)}</td>
-                <td className="px-4 py-2">{load.customer.name}</td>
-                <td className="px-4 py-2">{load.carrier?.name ?? "—"}</td>
-                <td className="px-4 py-2">
-                  ${load.customerRate.toLocaleString()}
-                </td>
-                <td className="px-4 py-2">
-                  {nextLabel && (
-                    <form
-                      action={advanceLoadStatus.bind(null, load.id)}
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-zinc-100 text-left text-zinc-600">
+            <tr>
+              <th className="px-4 py-2">Ref #</th>
+              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Equipment</th>
+              <th className="px-4 py-2">Mode</th>
+              <th className="px-4 py-2">Pickup</th>
+              <th className="px-4 py-2">Delivery</th>
+              <th className="px-4 py-2">Customer</th>
+              <th className="px-4 py-2">Carrier</th>
+              <th className="px-4 py-2">Rate</th>
+              <th className="px-4 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loads.map((load) => {
+              const nextLabel = NEXT_STATUS_LABEL[load.status];
+              return (
+                <tr key={load.id} className="border-t border-zinc-100">
+                  <td className="px-4 py-2 font-medium whitespace-nowrap">
+                    {load.referenceNumber}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${STATUS_STYLES[load.status]}`}
                     >
-                      <button
-                        type="submit"
-                        className="whitespace-nowrap text-xs text-blue-600 hover:underline"
-                      >
-                        {nextLabel}
-                      </button>
-                    </form>
-                  )}
+                      {load.status.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {EQUIPMENT_LABELS[load.equipment]}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    {MODE_LABELS[load.modeType]}
+                  </td>
+                  <td className="px-4 py-2">
+                    <div>{load.pickupAddress}</div>
+                    <div className="text-xs text-zinc-500">
+                      {formatDateTime(load.pickupScheduledAt)}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2">
+                    <div>{load.deliveryAddress}</div>
+                    <div className="text-xs text-zinc-500">
+                      {formatDateTime(load.deliveryScheduledAt)}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2">{load.customer.name}</td>
+                  <td className="px-4 py-2">{load.carrier?.name ?? "—"}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    ${load.customerRate.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2">
+                    {nextLabel && (
+                      <form action={advanceLoadStatus.bind(null, load.id)}>
+                        <button
+                          type="submit"
+                          className="whitespace-nowrap text-xs text-blue-600 hover:underline"
+                        >
+                          {nextLabel}
+                        </button>
+                      </form>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {loads.length === 0 && (
+              <tr>
+                <td
+                  colSpan={10}
+                  className="px-4 py-6 text-center text-zinc-500"
+                >
+                  No loads yet. Create your first one above.
                 </td>
               </tr>
-            );
-          })}
-          {loads.length === 0 && (
-            <tr>
-              <td colSpan={8} className="px-4 py-6 text-center text-zinc-500">
-                No loads yet. Create your first one above.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
