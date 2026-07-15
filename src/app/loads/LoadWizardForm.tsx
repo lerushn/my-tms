@@ -136,11 +136,11 @@ export function LoadWizardForm({
             }}
             className="grid w-full shrink-0 grid-cols-2 gap-3 p-6"
           >
-            <Field label="Pickup address*" className="col-span-2">
-              <input name="pickupAddress" required className={inputClass} />
-            </Field>
             <Field label="Shipper name (business/location at pickup)" className="col-span-2">
               <input name="shipperName" className={inputClass} />
+            </Field>
+            <Field label="Pickup address*" className="col-span-2">
+              <input name="pickupAddress" required className={inputClass} />
             </Field>
             <Field label="Pickup scheduled time*">
               <input
@@ -205,11 +205,11 @@ export function LoadWizardForm({
             }}
             className="grid w-full shrink-0 grid-cols-2 gap-3 p-6"
           >
-            <Field label="Delivery address*" className="col-span-2">
-              <input name="deliveryAddress" required className={inputClass} />
-            </Field>
             <Field label="Receiver name (business/location at delivery)" className="col-span-2">
               <input name="receiverName" className={inputClass} />
+            </Field>
+            <Field label="Delivery address*" className="col-span-2">
+              <input name="deliveryAddress" required className={inputClass} />
             </Field>
             <Field label="Delivery scheduled time*">
               <input
