@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type {
   Equipment,
   LoadStatus,
@@ -51,6 +52,12 @@ export async function createLoad(formData: FormData) {
   });
 
   revalidatePath("/loads");
+
+  // A load with a carrier assigned is DISPATCHED, not BOOKED, so it moves
+  // straight to In Transit - land the user wherever it actually ended up
+  // instead of leaving them on Available wondering if anything happened.
+  const destinationTab = carrierId ? "in-transit" : "available";
+  redirect(`/loads?tab=${destinationTab}&created=${loadNumber}`);
 }
 
 export async function dispatchLoad(loadId: string, formData: FormData) {

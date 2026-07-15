@@ -46,10 +46,11 @@ function parseTab(value: string | string[] | undefined): Tab {
 export default async function LoadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; created?: string | string[] }>;
 }) {
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, created } = await searchParams;
   const tab = parseTab(tabParam);
+  const createdLoadNumber = Array.isArray(created) ? created[0] : created;
 
   const [loads, customers, carriers] = await Promise.all([
     prisma.load.findMany({
@@ -71,6 +72,15 @@ export default async function LoadsPage({
           {tab === "available" ? "Create your load" : TAB_DESCRIPTIONS[tab]}
         </p>
       </div>
+
+      {createdLoadNumber && (
+        <p className="rounded-xl border border-green-400/20 bg-green-400/10 p-4 text-green-300">
+          Load {createdLoadNumber} created
+          {tab === "in-transit"
+            ? " and dispatched — it landed here in In Transit."
+            : "."}
+        </p>
+      )}
 
       {tab === "available" &&
         (customers.length === 0 ? (
