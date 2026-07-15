@@ -92,3 +92,19 @@ export async function advanceLoadStatus(loadId: string) {
 
   revalidatePath("/loads");
 }
+
+export async function revertLoadStatus(loadId: string) {
+  const load = await prisma.load.findUniqueOrThrow({ where: { id: loadId } });
+  const currentIndex = STATUS_ORDER.indexOf(load.status);
+  const prev = STATUS_ORDER[currentIndex - 1];
+  if (currentIndex <= 0 || !prev) return;
+
+  await prisma.load.update({
+    where: { id: loadId },
+    // Un-dispatching (back to BOOKED) also clears the carrier, since
+    // "Available" means no carrier assigned yet.
+    data: { status: prev, carrierId: prev === "BOOKED" ? null : undefined },
+  });
+
+  revalidatePath("/loads");
+}

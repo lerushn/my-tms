@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { createLoad, advanceLoadStatus, dispatchLoad } from "./actions";
+import {
+  createLoad,
+  advanceLoadStatus,
+  revertLoadStatus,
+  dispatchLoad,
+} from "./actions";
 import { TabSelect } from "./TabSelect";
 import type { Equipment, LoadStatus, ModeType } from "@/generated/prisma/client";
 
@@ -22,6 +27,16 @@ const NEXT_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
   IN_TRANSIT: "Mark at delivery",
   AT_DELIVERY: "Mark completed",
   DELIVERED: "Mark invoiced",
+};
+
+const PREV_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
+  DISPATCHED: "Back to booked",
+  ON_ROUTE_TO_PICKUP: "Back to dispatched",
+  AT_PICKUP: "Back to on route to pickup",
+  IN_TRANSIT: "Back to at pickup",
+  AT_DELIVERY: "Back to in transit",
+  DELIVERED: "Back to at delivery",
+  INVOICED: "Back to delivered",
 };
 
 const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
@@ -296,6 +311,7 @@ export default async function LoadsPage({
           <tbody>
             {loads.map((load) => {
               const nextLabel = NEXT_STATUS_LABEL[load.status];
+              const prevLabel = PREV_STATUS_LABEL[load.status];
               return (
                 <tr key={load.id} className="border-t border-zinc-100">
                   <td className="px-4 py-2 font-medium whitespace-nowrap">
@@ -363,15 +379,33 @@ export default async function LoadsPage({
                         </button>
                       </form>
                     )}
-                    {tab === "in-transit" && nextLabel && (
-                      <form action={advanceLoadStatus.bind(null, load.id)}>
-                        <button
-                          type="submit"
-                          className="whitespace-nowrap text-xs text-blue-600 hover:underline"
-                        >
-                          {nextLabel}
-                        </button>
-                      </form>
+                    {tab !== "available" && (
+                      <div className="flex flex-col items-start gap-1">
+                        {nextLabel && (
+                          <form
+                            action={advanceLoadStatus.bind(null, load.id)}
+                          >
+                            <button
+                              type="submit"
+                              className="whitespace-nowrap text-xs text-blue-600 hover:underline"
+                            >
+                              {nextLabel}
+                            </button>
+                          </form>
+                        )}
+                        {prevLabel && (
+                          <form
+                            action={revertLoadStatus.bind(null, load.id)}
+                          >
+                            <button
+                              type="submit"
+                              className="whitespace-nowrap text-xs text-zinc-500 hover:underline"
+                            >
+                              ← {prevLabel}
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
