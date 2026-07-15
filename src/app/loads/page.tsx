@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { createLoad, advanceLoadStatus } from "./actions";
+import { createLoad, advanceLoadStatus, dispatchLoad } from "./actions";
+import { TabSelect } from "./TabSelect";
 import type { Equipment, LoadStatus, ModeType } from "@/generated/prisma/client";
 
 const STATUS_STYLES: Record<LoadStatus, string> = {
@@ -12,7 +13,6 @@ const STATUS_STYLES: Record<LoadStatus, string> = {
 };
 
 const NEXT_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
-  BOOKED: "Mark dispatched",
   DISPATCHED: "Mark in transit",
   IN_TRANSIT: "Mark delivered",
   DELIVERED: "Mark invoiced",
@@ -48,9 +48,36 @@ function formatDateTime(d: Date) {
   });
 }
 
-export default async function LoadsPage() {
+type Tab = "available" | "in-transit" | "completed";
+
+const TAB_STATUSES: Record<Tab, LoadStatus[]> = {
+  available: ["BOOKED"],
+  "in-transit": ["DISPATCHED", "IN_TRANSIT"],
+  completed: ["DELIVERED", "INVOICED", "CANCELLED"],
+};
+
+const TAB_DESCRIPTIONS: Record<Tab, string> = {
+  available: "Loads that haven't been dispatched to a carrier yet.",
+  "in-transit": "Loads dispatched to a carrier and on the move.",
+  completed: "Delivered and invoiced loads.",
+};
+
+function parseTab(value: string | string[] | undefined): Tab {
+  if (value === "in-transit" || value === "completed") return value;
+  return "available";
+}
+
+export default async function LoadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const { tab: tabParam } = await searchParams;
+  const tab = parseTab(tabParam);
+
   const [loads, customers, carriers] = await Promise.all([
     prisma.load.findMany({
+      where: { status: { in: TAB_STATUSES[tab] } },
       include: { customer: true, carrier: true },
       orderBy: { createdAt: "desc" },
     }),
@@ -60,173 +87,181 @@ export default async function LoadsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Loads</h1>
-        <p className="text-zinc-600">
-          Every shipment moving from a pickup to a delivery address.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Loads</h1>
+          <p className="text-zinc-600">{TAB_DESCRIPTIONS[tab]}</p>
+        </div>
+        <TabSelect current={tab} />
       </div>
 
-      {customers.length === 0 ? (
+      {tab === "available" &&
+        (customers.length === 0 ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+            Add a customer first before creating a load.
+          </p>
+        ) : (
+          <form
+            action={createLoad}
+            className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4"
+          >
+            <input
+              name="referenceNumber"
+              placeholder="Reference # (customer's PO/ref #, optional)"
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            />
+
+            <select
+              name="customerId"
+              required
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            >
+              <option value="">Customer*</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="carrierId"
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            >
+              <option value="">Carrier (assign now or later)</option>
+              {carriers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              name="pickupAddress"
+              placeholder="Pickup address*"
+              required
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            />
+            <input
+              name="deliveryAddress"
+              placeholder="Delivery address*"
+              required
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            />
+
+            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+              Pickup scheduled time*
+              <input
+                name="pickupScheduledAt"
+                type="datetime-local"
+                required
+                className="rounded border border-zinc-300 px-3 py-2"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+              Delivery scheduled time*
+              <input
+                name="deliveryScheduledAt"
+                type="datetime-local"
+                required
+                className="rounded border border-zinc-300 px-3 py-2"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+              Equipment*
+              <select
+                name="equipment"
+                required
+                defaultValue=""
+                className="rounded border border-zinc-300 px-3 py-2"
+              >
+                <option value="" disabled>
+                  Select equipment
+                </option>
+                {EQUIPMENT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+              Mode*
+              <select
+                name="modeType"
+                required
+                defaultValue=""
+                className="rounded border border-zinc-300 px-3 py-2"
+              >
+                <option value="" disabled>
+                  Select mode
+                </option>
+                {MODE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <input
+              name="pieces"
+              type="number"
+              placeholder="Pieces"
+              className="rounded border border-zinc-300 px-3 py-2"
+            />
+            <input
+              name="weight"
+              type="number"
+              placeholder="Weight (lbs)"
+              className="rounded border border-zinc-300 px-3 py-2"
+            />
+            <input
+              name="commodity"
+              placeholder="Commodity"
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            />
+
+            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+              Customer rate ($)*
+              <input
+                name="customerRate"
+                type="number"
+                step="0.01"
+                required
+                className="rounded border border-zinc-300 px-3 py-2"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-600">
+              Carrier rate ($)
+              <input
+                name="carrierRate"
+                type="number"
+                step="0.01"
+                className="rounded border border-zinc-300 px-3 py-2"
+              />
+            </label>
+
+            <textarea
+              name="notes"
+              placeholder="Notes"
+              className="col-span-2 rounded border border-zinc-300 px-3 py-2"
+            />
+
+            <button
+              type="submit"
+              className="col-span-2 rounded bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700"
+            >
+              Create load
+            </button>
+          </form>
+        ))}
+
+      {tab === "available" && loads.length > 0 && carriers.length === 0 && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
-          Add a customer first before creating a load.
+          Add a carrier before you can dispatch these loads.
         </p>
-      ) : (
-        <form
-          action={createLoad}
-          className="grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4"
-        >
-          <input
-            name="referenceNumber"
-            placeholder="Reference # (customer's PO/ref #, optional)"
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          />
-
-          <select
-            name="customerId"
-            required
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          >
-            <option value="">Customer*</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="carrierId"
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          >
-            <option value="">Carrier (assign now or later)</option>
-            {carriers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          <input
-            name="pickupAddress"
-            placeholder="Pickup address*"
-            required
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          />
-          <input
-            name="deliveryAddress"
-            placeholder="Delivery address*"
-            required
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          />
-
-          <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Pickup scheduled time*
-            <input
-              name="pickupScheduledAt"
-              type="datetime-local"
-              required
-              className="rounded border border-zinc-300 px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Delivery scheduled time*
-            <input
-              name="deliveryScheduledAt"
-              type="datetime-local"
-              required
-              className="rounded border border-zinc-300 px-3 py-2"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Equipment*
-            <select
-              name="equipment"
-              required
-              defaultValue=""
-              className="rounded border border-zinc-300 px-3 py-2"
-            >
-              <option value="" disabled>
-                Select equipment
-              </option>
-              {EQUIPMENT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Mode*
-            <select
-              name="modeType"
-              required
-              defaultValue=""
-              className="rounded border border-zinc-300 px-3 py-2"
-            >
-              <option value="" disabled>
-                Select mode
-              </option>
-              {MODE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <input
-            name="pieces"
-            type="number"
-            placeholder="Pieces"
-            className="rounded border border-zinc-300 px-3 py-2"
-          />
-          <input
-            name="weight"
-            type="number"
-            placeholder="Weight (lbs)"
-            className="rounded border border-zinc-300 px-3 py-2"
-          />
-          <input
-            name="commodity"
-            placeholder="Commodity"
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          />
-
-          <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Customer rate ($)*
-            <input
-              name="customerRate"
-              type="number"
-              step="0.01"
-              required
-              className="rounded border border-zinc-300 px-3 py-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-zinc-600">
-            Carrier rate ($)
-            <input
-              name="carrierRate"
-              type="number"
-              step="0.01"
-              className="rounded border border-zinc-300 px-3 py-2"
-            />
-          </label>
-
-          <textarea
-            name="notes"
-            placeholder="Notes"
-            className="col-span-2 rounded border border-zinc-300 px-3 py-2"
-          />
-
-          <button
-            type="submit"
-            className="col-span-2 rounded bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700"
-          >
-            Create load
-          </button>
-        </form>
       )}
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
@@ -288,7 +323,35 @@ export default async function LoadsPage() {
                     ${load.customerRate.toLocaleString()}
                   </td>
                   <td className="px-4 py-2">
-                    {nextLabel && (
+                    {tab === "available" && carriers.length > 0 && (
+                      <form
+                        action={dispatchLoad.bind(null, load.id)}
+                        className="flex items-center gap-1"
+                      >
+                        <select
+                          name="carrierId"
+                          required
+                          defaultValue=""
+                          className="rounded border border-zinc-300 px-1 py-1 text-xs"
+                        >
+                          <option value="" disabled>
+                            Assign carrier
+                          </option>
+                          {carriers.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="submit"
+                          className="whitespace-nowrap text-xs text-blue-600 hover:underline"
+                        >
+                          Dispatch
+                        </button>
+                      </form>
+                    )}
+                    {tab === "in-transit" && nextLabel && (
                       <form action={advanceLoadStatus.bind(null, load.id)}>
                         <button
                           type="submit"
@@ -308,7 +371,7 @@ export default async function LoadsPage() {
                   colSpan={11}
                   className="px-4 py-6 text-center text-zinc-500"
                 >
-                  No loads yet. Create your first one above.
+                  No loads in this view.
                 </td>
               </tr>
             )}

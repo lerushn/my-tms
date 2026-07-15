@@ -50,6 +50,20 @@ export async function createLoad(formData: FormData) {
   revalidatePath("/loads");
 }
 
+export async function dispatchLoad(loadId: string, formData: FormData) {
+  const carrierId = String(formData.get("carrierId") ?? "");
+  if (!carrierId) {
+    throw new Error("Carrier is required to dispatch a load");
+  }
+
+  await prisma.load.update({
+    where: { id: loadId },
+    data: { carrierId, status: "DISPATCHED" },
+  });
+
+  revalidatePath("/loads");
+}
+
 const STATUS_ORDER: LoadStatus[] = [
   "BOOKED",
   "DISPATCHED",
