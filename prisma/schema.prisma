@@ -38,9 +38,12 @@ model Carrier {
 
 enum LoadStatus {
   BOOKED
-  DISPATCHED
-  IN_TRANSIT
-  DELIVERED
+  DISPATCHED // carrier assigned
+  ON_ROUTE_TO_PICKUP // manual for now; will auto-set once live GPS shows the carrier ~5mi from the dispatch location
+  AT_PICKUP // carrier checked in at pickup, set manually
+  IN_TRANSIT // loaded and checked out of pickup with a BOL
+  AT_DELIVERY // carrier checked in at the delivery site
+  DELIVERED // POD received, load complete
   INVOICED
   CANCELLED
 }

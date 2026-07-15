@@ -67,11 +67,18 @@ export async function dispatchLoad(loadId: string, formData: FormData) {
 const STATUS_ORDER: LoadStatus[] = [
   "BOOKED",
   "DISPATCHED",
+  "ON_ROUTE_TO_PICKUP",
+  "AT_PICKUP",
   "IN_TRANSIT",
+  "AT_DELIVERY",
   "DELIVERED",
   "INVOICED",
 ];
 
+// Every step here is a manual click today. ON_ROUTE_TO_PICKUP is the one
+// that's meant to eventually flip automatically once we're tracking carrier
+// GPS location (~5mi from the dispatch point), but until that's built it's
+// just another manual advance like the rest.
 export async function advanceLoadStatus(loadId: string) {
   const load = await prisma.load.findUniqueOrThrow({ where: { id: loadId } });
   const currentIndex = STATUS_ORDER.indexOf(load.status);

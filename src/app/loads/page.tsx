@@ -6,15 +6,21 @@ import type { Equipment, LoadStatus, ModeType } from "@/generated/prisma/client"
 const STATUS_STYLES: Record<LoadStatus, string> = {
   BOOKED: "bg-zinc-100 text-zinc-700",
   DISPATCHED: "bg-blue-100 text-blue-700",
+  ON_ROUTE_TO_PICKUP: "bg-sky-100 text-sky-700",
+  AT_PICKUP: "bg-indigo-100 text-indigo-700",
   IN_TRANSIT: "bg-amber-100 text-amber-700",
+  AT_DELIVERY: "bg-orange-100 text-orange-700",
   DELIVERED: "bg-green-100 text-green-700",
   INVOICED: "bg-purple-100 text-purple-700",
   CANCELLED: "bg-red-100 text-red-700",
 };
 
 const NEXT_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
-  DISPATCHED: "Mark in transit",
-  IN_TRANSIT: "Mark delivered",
+  DISPATCHED: "Mark on route to pickup",
+  ON_ROUTE_TO_PICKUP: "Mark at pickup",
+  AT_PICKUP: "Mark in transit",
+  IN_TRANSIT: "Mark at delivery",
+  AT_DELIVERY: "Mark completed",
   DELIVERED: "Mark invoiced",
 };
 
@@ -52,7 +58,13 @@ type Tab = "available" | "in-transit" | "completed";
 
 const TAB_STATUSES: Record<Tab, LoadStatus[]> = {
   available: ["BOOKED"],
-  "in-transit": ["DISPATCHED", "IN_TRANSIT"],
+  "in-transit": [
+    "DISPATCHED",
+    "ON_ROUTE_TO_PICKUP",
+    "AT_PICKUP",
+    "IN_TRANSIT",
+    "AT_DELIVERY",
+  ],
   completed: ["DELIVERED", "INVOICED", "CANCELLED"],
 };
 
@@ -296,7 +308,7 @@ export default async function LoadsPage({
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${STATUS_STYLES[load.status]}`}
                     >
-                      {load.status.replace("_", " ")}
+                      {load.status.replaceAll("_", " ")}
                     </span>
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap">
