@@ -1,19 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import {
-  createLoad,
-  advanceLoadStatus,
-  revertLoadStatus,
-  dispatchLoad,
-} from "./actions";
-import type { Equipment, LoadStatus, ModeType } from "@/generated/prisma/client";
-import {
-  cardClass,
-  inputClass,
-  primaryButtonClass,
-  tableWrapClass,
-  theadClass,
-  trClass,
-} from "@/lib/ui";
+import { advanceLoadStatus, revertLoadStatus, dispatchLoad } from "./actions";
+import { LoadWizardForm } from "./LoadWizardForm";
+import type { LoadStatus } from "@/generated/prisma/client";
+import { tableWrapClass, theadClass, trClass } from "@/lib/ui";
+import { EQUIPMENT_LABELS, MODE_LABELS } from "@/lib/loadOptions";
 
 const STATUS_STYLES: Record<LoadStatus, string> = {
   BOOKED: "bg-zinc-500/15 text-zinc-300",
@@ -45,27 +35,6 @@ const PREV_STATUS_LABEL: Partial<Record<LoadStatus, string>> = {
   DELIVERED: "Back to at delivery",
   INVOICED: "Back to delivered",
 };
-
-const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
-  { value: "SPRINTER", label: "Sprinter" },
-  { value: "SMALL_STRAIGHT", label: "Small Straight" },
-  { value: "LARGE_STRAIGHT", label: "Large Straight" },
-  { value: "DRY_VAN", label: "Dry Van" },
-  { value: "FLATBED", label: "Flatbed" },
-];
-const EQUIPMENT_LABELS = Object.fromEntries(
-  EQUIPMENT_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<Equipment, string>;
-
-const MODE_OPTIONS: { value: ModeType; label: string }[] = [
-  { value: "GROUND", label: "Ground" },
-  { value: "OCEAN", label: "Ocean" },
-  { value: "CROSS_BORDER", label: "Cross Border" },
-  { value: "AIR", label: "Air" },
-];
-const MODE_LABELS = Object.fromEntries(
-  MODE_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<ModeType, string>;
 
 function formatDateTime(d: Date) {
   return d.toLocaleString("en-US", {
@@ -129,9 +98,11 @@ export default async function LoadsPage({
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold text-white">
-          Loads · {TAB_TITLES[tab]}
+          {tab === "available" ? "Available Loads" : `Loads · ${TAB_TITLES[tab]}`}
         </h1>
-        <p className="text-zinc-400">{TAB_DESCRIPTIONS[tab]}</p>
+        <p className="text-zinc-400">
+          {tab === "available" ? "Create your load" : TAB_DESCRIPTIONS[tab]}
+        </p>
       </div>
 
       {tab === "available" &&
@@ -140,155 +111,9 @@ export default async function LoadsPage({
             Add a customer first before creating a load.
           </p>
         ) : (
-          <form
-            action={createLoad}
-            className={`grid max-w-2xl grid-cols-2 gap-3 ${cardClass}`}
-          >
-            <input
-              name="referenceNumber"
-              placeholder="Reference # (customer's PO/ref #, optional)"
-              className={`col-span-2 ${inputClass}`}
-            />
-
-            <select
-              name="customerId"
-              required
-              className={`col-span-2 ${inputClass}`}
-            >
-              <option value="">Customer*</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-
-            <select name="carrierId" className={`col-span-2 ${inputClass}`}>
-              <option value="">Carrier (assign now or later)</option>
-              {carriers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-
-            <input
-              name="pickupAddress"
-              placeholder="Pickup address*"
-              required
-              className={`col-span-2 ${inputClass}`}
-            />
-            <input
-              name="deliveryAddress"
-              placeholder="Delivery address*"
-              required
-              className={`col-span-2 ${inputClass}`}
-            />
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Pickup scheduled time*
-              <input
-                name="pickupScheduledAt"
-                type="datetime-local"
-                required
-                className={inputClass}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Delivery scheduled time*
-              <input
-                name="deliveryScheduledAt"
-                type="datetime-local"
-                required
-                className={inputClass}
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Equipment*
-              <select
-                name="equipment"
-                required
-                defaultValue=""
-                className={inputClass}
-              >
-                <option value="" disabled>
-                  Select equipment
-                </option>
-                {EQUIPMENT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Mode*
-              <select
-                name="modeType"
-                required
-                defaultValue=""
-                className={inputClass}
-              >
-                <option value="" disabled>
-                  Select mode
-                </option>
-                {MODE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <input
-              name="pieces"
-              type="number"
-              placeholder="Pieces"
-              className={inputClass}
-            />
-            <input
-              name="weight"
-              type="number"
-              placeholder="Weight (lbs)"
-              className={inputClass}
-            />
-            <input
-              name="commodity"
-              placeholder="Commodity"
-              className={`col-span-2 ${inputClass}`}
-            />
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Customer rate ($)*
-              <input
-                name="customerRate"
-                type="number"
-                step="0.01"
-                required
-                className={inputClass}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm text-zinc-400">
-              Carrier rate ($)
-              <input
-                name="carrierRate"
-                type="number"
-                step="0.01"
-                className={inputClass}
-              />
-            </label>
-
-            <textarea
-              name="notes"
-              placeholder="Notes"
-              className={`col-span-2 ${inputClass}`}
-            />
-
-            <button type="submit" className={`col-span-2 ${primaryButtonClass}`}>
-              Create load
-            </button>
-          </form>
+          <div className="max-w-2xl">
+            <LoadWizardForm customers={customers} carriers={carriers} />
+          </div>
         ))}
 
       {tab === "available" && loads.length > 0 && carriers.length === 0 && (
